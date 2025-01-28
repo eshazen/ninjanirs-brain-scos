@@ -42,7 +42,7 @@
 		(pad_to_mask_clearance 0)
 		(allow_soldermask_bridges_in_footprints no)
 		(pcbplotparams
-			(layerselection 0x0001000_7ffffffe)
+			(layerselection 0x00010f0_ffffffff)
 			(plot_on_all_layers_selection 0x0000000_00000000)
 			(disableapertmacros no)
 			(usegerberextensions no)
@@ -72,11 +72,11 @@
 			(plotinvisibletext no)
 			(sketchpadsonfab no)
 			(subtractmaskfromsilk no)
-			(outputformat 3)
+			(outputformat 1)
 			(mirror no)
 			(drillshape 0)
 			(scaleselection 1)
-			(outputdirectory "dxf/")
+			(outputdirectory "gerber/")
 		)
 	)
 	(net 0 "")
@@ -88,15 +88,16 @@
 		(uuid "48fd96ae-e0cc-462e-95af-b261a546d586")
 		(at 136.695 97.27)
 		(property "Reference" "D1"
-			(at 1.355 -1.72 0)
+			(at 0.505 2.43 -0)
 			(unlocked yes)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 			(uuid "7d637301-037b-43c8-8553-05c59467e2f1")
 			(effects
 				(font
 					(size 1 1)
 					(thickness 0.1)
 				)
+				(justify mirror)
 			)
 		)
 		(property "Value" "LED_Dual_KKA"
@@ -277,7 +278,7 @@
 		(descr "Through hole straight pin header, 1x03, 1.00mm pitch, single row")
 		(tags "Through hole pin header THT 1x03 1.00mm single row")
 		(property "Reference" "J1"
-			(at 0 -1.56 0)
+			(at -2.1 0.95 0)
 			(layer "F.SilkS")
 			(uuid "c0106aa6-9f67-4071-8eaa-96f3c9f9ce40")
 			(effects
@@ -688,6 +689,18 @@
 		(layer "Edge.Cuts")
 		(uuid "e83b3bc6-9627-4357-8286-aae6b24e787e")
 	)
+	(gr_text "NN SRC\nv1.0"
+		(at 142.1 100 0)
+		(layer "B.SilkS")
+		(uuid "dac7616a-4757-4bd8-87f0-1385cd86233c")
+		(effects
+			(font
+				(size 0.8128 0.8128)
+				(thickness 0.127)
+			)
+			(justify left bottom mirror)
+		)
+	)
 	(dimension
 		(type aligned)
 		(layer "User.2")
@@ -696,7 +709,7 @@
 			(xy 136 96.6) (xy 136 101)
 		)
 		(height 2.2)
-		(gr_text "4.4000 mm"
+		(gr_text "0.1732 in"
 			(at 132.65 98.8 90)
 			(layer "User.2")
 			(uuid "9d02fbd4-13f1-4d2a-90db-8d5f42f054f1")
@@ -730,7 +743,7 @@
 		)
 		(height 7.4)
 		(orientation 0)
-		(gr_text "2.4000 mm"
+		(gr_text "0.0945 in"
 			(at 143.4 107.15 0)
 			(layer "Cmts.User")
 			(uuid "0f1b25d1-ceeb-4d3c-8558-f8132e908be0")
@@ -764,7 +777,7 @@
 		)
 		(height 4.3)
 		(orientation 0)
-		(gr_text "3.3000 mm"
+		(gr_text "0.1299 in"
 			(at 140.55 104.15 0)
 			(layer "Cmts.User")
 			(uuid "1cc65576-3450-4859-bd1b-8deecb141b13")
@@ -798,7 +811,7 @@
 		)
 		(height 12.7)
 		(orientation 1)
-		(gr_text "2.5000 mm"
+		(gr_text "0.0984 in"
 			(at 150.45 98.85 90)
 			(layer "Cmts.User")
 			(uuid "3feeace6-0c0d-4238-8496-9f90978ce2d4")
@@ -832,7 +845,7 @@
 		)
 		(height 2.7)
 		(orientation 1)
-		(gr_text "4.1000 mm"
+		(gr_text "0.1614 in"
 			(at 146.15 98.85 90)
 			(layer "Cmts.User")
 			(uuid "49572a02-c89b-4e96-b69c-70fec5b47552")
@@ -866,7 +879,7 @@
 		)
 		(height -3.8)
 		(orientation 0)
-		(gr_text "8.6000 mm"
+		(gr_text "0.3386 in"
 			(at 140.3 91.65 0)
 			(layer "Cmts.User")
 			(uuid "a76a5cc3-550f-4fd2-9551-7e6097ebddd6")

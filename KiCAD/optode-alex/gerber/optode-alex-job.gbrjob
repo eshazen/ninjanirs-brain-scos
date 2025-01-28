@@ -5,7 +5,7 @@
       "Application": "Pcbnew",
       "Version": "8.0.7-8.0.7-0~ubuntu24.04.1"
     },
-    "CreationDate": "2025-01-27T14:05:20-05:00"
+    "CreationDate": "2025-01-28T12:27:14-05:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
@@ -39,16 +39,6 @@
     {
       "Path": "optode-alex-B_Cu.gbr",
       "FileFunction": "Copper,L2,Bot",
-      "FilePolarity": "Positive"
-    },
-    {
-      "Path": "optode-alex-F_Paste.gbr",
-      "FileFunction": "SolderPaste,Top",
-      "FilePolarity": "Positive"
-    },
-    {
-      "Path": "optode-alex-B_Paste.gbr",
-      "FileFunction": "SolderPaste,Bot",
       "FilePolarity": "Positive"
     },
     {

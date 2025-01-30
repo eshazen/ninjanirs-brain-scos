@@ -21,8 +21,8 @@ static unsigned iargv[MAXARG];
 static int argc;
 
 void pbuff( byte *buff, int nc);
-void ram_wr( int addr, int led, unsigned dac, int en, int end);
-
+byte* ram_wr( int addr, int led, unsigned dac, int en, int end);
+int ram_rd( int addr, int& led, unsigned& dac, int& en, int& end);
 void setup() {
   // SRCB Run - zero to reset MCU
   pinMode( SRCB_RUN, OUTPUT);
@@ -69,56 +69,42 @@ void loop() {
   Serial.println( buff);
 
   // parse into text and integer tokens (see parse.ino)
-  argc = parse( buff, argv, iargv, MAXARG);
+  argc = parse( buff, argv, (int *)iargv, MAXARG);
 
   // run command
   switch( toupper( *argv[0])) {
   case 'H':
-    Serial.println("W <addr> <led> <dac> [E] [D]");
+    Serial.println("W <addr> <led> <dac> <ena> <end>");
     Serial.println("  addr 0-1024 led 0-15 E=en D=end");
     Serial.println("R <addr> [<count>]");
     Serial.println("E <0/1>  set LED enable (1=en 0=disable for RAM access)");
     Serial.println("S        step to next memory lcn");
     break;
   case 'W':			// write to RAM all bytes
-    if( argc > 3) {
-      digitalWrite( LED_EN, LOW);	// set to UART mode
-      memset( ramd, 0, sizeof(ramd));
-      int addr = iargv[1] & 1023;
-      int led = iargv[2] & 15;
+    if( argc > 5) {
+      int addr = iargv[1];
+      int led = iargv[2];
       int dac = iargv[3];
-      ramd[0] = 255;		// command byte
-      // 2 bytes address, LSB first
-      ramd[1] = (addr & 0xff);	// LSB of address
-      ramd[2] = (addr >> 8) | 0b10110000; // MSB of address plus 'w' and offset
-      // 4 bytes data, LSB first
-      ramd[3] = dac & 0xff;	// DAC low byte
-      ramd[4] = dac >> 8;	// DAC high byte
-      ramd[5] = led;			  // LED 2
-      ramd[6] = 0;
-      if( argc > 4) {		// check for 'E' (enable) and 'N' (end)
-	for( int i=4; i<argc; i++)
-	  switch( toupper( *argv[i])) {
-	  case 'D':
-	    ramd[5] |= 0x10;	// LED disable this step
-	    break;
-	  case 'E':
-	    ramd[6] |= 0x80;	// set 'END'
-	    break;
-	  }
-      }
-      pbuff( ramd, 7);
-      Serial2.write( ramd, 7);
+      int ena = iargv[4];
+      int end = iargv[5];
+
+      byte *p = ram_wr( addr, led, dac, ena, end);
+      pbuff( p, 7);
     }
     break;
   case 'R':
-    digitalWrite( LED_EN, LOW);	// set to UART mode
-    ramr[1] = iargv[1];
-    Serial2.write( ramr, 7);
-    nr = Serial2.readBytes( ramd, 10);
-    if( nr)
-      pbuff( ramd, nr);
+    if( argc > 1) {
+      int addr = iargv[1];
+      int led;
+      unsigned dac;
+      int ena;
+      int end;
+      ram_rd( addr, led, dac, ena, end);
+      snprintf( buff, sizeof(buff), "%2d 0x%04x %d %d", led, dac, ena, end);
+      Serial.println( buff);
+    }
     break;
+
   case 'E':			// enable LEDs 0=off 1=on
     if( iargv[1])
       Serial.println("LEDs enabled");
@@ -151,33 +137,65 @@ void pbuff( byte *b, int nc) {
 //   en   - enable LED this step (1=enable, 0=disable)
 //   end  - marks the last step (1)
 //
-void ram_wr( int addr, int led, unsigned dac, int en, int end) {
+// returns pointer to raw memory data
+//
+byte* ram_wr( int addr, int led, unsigned dac, int en, int end) {
 
-  byte ramb[10];
+  static byte ramb[10];
+  // force values to be in range
+  addr &= 1023;
+  led &= 15;
 
   digitalWrite( LED_EN, LOW);	// set to UART mode
-  memset( ramb, 0, sizeof(ramb));
-  ramb[0] = 255;		// command byte
+
+  memset( ramb, 0, sizeof(ramb)); // zero the memory buffer
+  ramb[0] = 255;		  // command byte
   // 2 bytes address, LSB first
   ramb[1] = (addr & 0xff);	// LSB of address
   ramb[2] = (addr >> 8) | 0b10110000; // MSB of address plus 'w' and offset
   // 4 bytes data, LSB first
   ramb[3] = dac & 0xff;	// DAC low byte
   ramb[4] = dac >> 8;	// DAC high byte
-  ramb[5] = led;			  // LED 2
+  ramb[5] = led;	// LED number
   ramb[6] = 0;
-  if( argc > 4) {		// check for 'E' (enable) and 'N' (end)
-    for( int i=4; i<argc; i++)
-      switch( toupper( *argv[i])) {
-      case 'D':
-	ramb[5] |= 0x10;	// LED disable this step
-	break;
-      case 'E':
-	ramb[6] |= 0x80;	// set 'END'
-	break;
-      }
-  }
-  pbuff( ramb, 7);
+  if( !en)
+    ramb[5] |= 0x10;	// LED disable this step
+  if( end)
+    ramb[6] |= 0x80;	// set 'END'
   Serial2.write( ramb, 7);
-    
+  return ramb;
+}
+
+
+//
+// read memory location
+//
+int ram_rd( int addr, int& led, unsigned& dac, int& en, int& end) {
+  static byte ram[] = { 255, 0, 48, 0, 0, 0, 0};
+  static byte ramb[10];
+  int nr;
+  
+  digitalWrite( LED_EN, LOW);	// set to UART mode
+
+  ram[1] = iargv[1];
+  ram[2] = ((iargv[1] >> 8) & 3) | 0x30;
+
+  Serial2.write( ram, 7);
+  nr = Serial2.readBytes( ramb, 10);
+
+  if( nr != 7)
+    return 1;
+
+  addr = ramb[1] | ((ramb[2] & 0x3ff) << 8);
+  led = ramb[5] & 15;
+  dac = ramb[3] | (ramb[4] << 8);
+  if( ramb[5] & 0x10)		// disable?
+    en = 0;
+  else
+    en = 1;
+  if( ramb[6] & 0x80)		// end?
+    end = 1;
+  else
+    end = 0;
+  return 0;
 }

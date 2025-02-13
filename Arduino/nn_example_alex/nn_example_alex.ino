@@ -3,6 +3,8 @@
 // example code for Alex
 //
 
+// #define MEMORY_DUMP_DEBUG
+
 // Pins on NN source card
 #define SRCB_RUN 22
 #define LED_EN 24
@@ -13,12 +15,18 @@
 #define UART_MUX0 41
 #define UART_MUX1 40
 
+// SCOS board LEDs
+#define LED1 A2
+#define LED2 A3
+
 byte* ram_wr( int addr, int led, unsigned dac, int en, int end);
 int ram_rd( int addr, int& led, unsigned& dac, int& en, int& end);
 
 void setup() {
   
   //---- setup pins and default values ----
+  pinMode( LED1, OUTPUT);	// SCOS LED
+
   pinMode( SRCB_RUN, OUTPUT);
   digitalWrite( SRCB_RUN, HIGH);// SRCB Run - zero to reset MCU
 
@@ -44,11 +52,20 @@ void setup() {
   delay(100);			// wait for NN board to boot up
 
   // write memory to turn each of 16 LEDs on, then off in sequence
-  for( int i=0; i<16; i++) {	// loop over all LEDs
+#define NSTEPS 32
+
+  for( int i=0; i<NSTEPS; i++) {	// loop over all LEDs
     ram_wr( 2*i,   i, 0xffff, 1, 0); // LED on
     ram_wr( 2*i+1, i, 0xffff, 0, 0); // LED off
+    ram_wr( NSTEPS, 0, 0, 0, 1);	// end flag in memory
   }
-  ram_wr( 32, 0, 0, 0, 1);	// end flag in memory
+  // WHY? does this have to be an additional word?
+  
+#ifdef MEMORY_DUMP_DEBUG
+  // try to read and dump the memory
+  digitalWrite( LED_EN, HIGH);
+  digitalWrite( LED_EN, LOW);	// reset to state 0 before reading
+#endif
 
   digitalWrite( LED_EN, 1);	// enable LEDs
 }
@@ -57,7 +74,10 @@ void loop() {
   // pulse at 10Hz
   digitalWrite( LED_STEP, HIGH);
   digitalWrite( LED_STEP, LOW);
-  delay(100);
+  delay(25);
+//  digitalWrite( LED1, HIGH);
+//  delay(100);
+//  digitalWrite( LED1, LOW);
 }
 
 
@@ -94,6 +114,17 @@ byte* ram_wr( int addr, int led, unsigned dac, int en, int end) {
     ramb[5] |= 0x10;	// LED disable this step
   if( end)
     ramb[6] |= 0x80;	// set 'END'
+
+#ifdef MEMORY_DUMP_DEBUG
+  // print memory word for debug
+  Serial.println("Write");
+  for( int i=0; i<7; i++) {
+    Serial.print(ramb[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println();
+#endif
+
   Serial2.write( ramb, 7);
   return ramb;
 }

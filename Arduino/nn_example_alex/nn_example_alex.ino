@@ -20,7 +20,9 @@
 #define LED2 A3
 
 byte* ram_wr( int addr, int led, unsigned dac, int en, int end);
-int ram_rd( int addr, int& led, unsigned& dac, int& en, int& end);
+byte* ram_rd( int addr, int& led, unsigned& dac, int& en, int& end);
+void dump_hex( byte* b, int n);
+
 
 void setup() {
   
@@ -51,20 +53,39 @@ void setup() {
 
   delay(100);			// wait for NN board to boot up
 
+#ifdef MEMORY_DUMP_DEBUG
+  Serial.println("-- Start --");
+#endif  
+
   // write memory to turn each of 16 LEDs on, then off in sequence
-#define NSTEPS 32
+#define NSTEPS 16
 
   for( int i=0; i<NSTEPS; i++) {	// loop over all LEDs
     ram_wr( 2*i,   i, 0xffff, 1, 0); // LED on
-    ram_wr( 2*i+1, i, 0xffff, 0, 0); // LED off
-    ram_wr( NSTEPS, 0, 0, 0, 1);	// end flag in memory
+    if( i == NSTEPS-1)
+      ram_wr( 2*i+1, i, 0xffff, 0, 1); // LED off
+    else
+      ram_wr( 2*i+1, i, 0xffff, 0, 0); // LED off
   }
-  // WHY? does this have to be an additional word?
   
+  // bogus memory read (why?)
+  int r_led;
+  unsigned r_dac;
+  int r_en;
+  int r_end;
+  byte* rb = ram_rd( 0, r_led, r_dac, r_en, r_end);
+
 #ifdef MEMORY_DUMP_DEBUG
   // try to read and dump the memory
   digitalWrite( LED_EN, HIGH);
   digitalWrite( LED_EN, LOW);	// reset to state 0 before reading
+  Serial.println("-- Read --");
+  for( int i=0; i<NSTEPS*2+1; i++) {
+    byte* rb = ram_rd( i, r_led, r_dac, r_en, r_end);
+    Serial.print( i);
+    Serial.print(": ");
+    dump_hex( rb, 7);
+  }
 #endif
 
   digitalWrite( LED_EN, 1);	// enable LEDs
@@ -75,9 +96,6 @@ void loop() {
   digitalWrite( LED_STEP, HIGH);
   digitalWrite( LED_STEP, LOW);
   delay(25);
-//  digitalWrite( LED1, HIGH);
-//  delay(100);
-//  digitalWrite( LED1, LOW);
 }
 
 
@@ -115,15 +133,10 @@ byte* ram_wr( int addr, int led, unsigned dac, int en, int end) {
   if( end)
     ramb[6] |= 0x80;	// set 'END'
 
-#ifdef MEMORY_DUMP_DEBUG
-  // print memory word for debug
-  Serial.println("Write");
-  for( int i=0; i<7; i++) {
-    Serial.print(ramb[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.println();
-#endif
+// #ifdef MEMORY_DUMP_DEBUG
+//   Serial.print("Write:  ");
+//   dump_hex( ramb, 7);
+// #endif
 
   Serial2.write( ramb, 7);
   return ramb;
@@ -133,7 +146,7 @@ byte* ram_wr( int addr, int led, unsigned dac, int en, int end) {
 //
 // read memory location
 //
-int ram_rd( int addr, int& led, unsigned& dac, int& en, int& end) {
+byte *ram_rd( int addr, int& led, unsigned& dac, int& en, int& end) {
   static byte ram[] = { 255, 0, 48, 0, 0, 0, 0};
   static byte ramb[10];
   int nr;
@@ -144,10 +157,10 @@ int ram_rd( int addr, int& led, unsigned& dac, int& en, int& end) {
   ram[2] = ((addr >> 8) & 3) | 0x30;
 
   Serial2.write( ram, 7);
-  nr = Serial2.readBytes( ramb, 10);
+  nr = Serial2.readBytes( ramb, 7);
 
   if( nr != 7)
-    return 1;
+    return NULL;
 
   addr = ramb[1] | ((ramb[2] & 0x3ff) << 8);
   led = ramb[5] & 15;
@@ -160,5 +173,19 @@ int ram_rd( int addr, int& led, unsigned& dac, int& en, int& end) {
     end = 1;
   else
     end = 0;
-  return 0;
+  return ramb;
 }
+
+
+//
+// print n hex bytes from ramb to Serial
+//
+void dump_hex( byte* ramb, int n) {
+  // print memory word for debug
+  for( int i=0; i<n; i++) {
+    Serial.print(ramb[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println();
+}
+
